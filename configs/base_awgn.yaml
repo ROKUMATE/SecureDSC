@@ -1,0 +1,62 @@
+# Full SecureDSC baseline: DeepSC-sized model, AWGN channel, random key, fixed
+# lambda. Uses the built-in toy corpus by default so it runs anywhere; to train
+# on Europarl set data.source=europarl and data.path=<file>, and raise
+# data.max_sentences / max_vocab.
+data:
+  source: toy            # toy | europarl
+  path: null             # e.g. data/europarl-v7.en  (one sentence per line)
+  max_len: 30
+  min_len: 4
+  max_vocab: 10000
+  max_sentences: null
+  val_fraction: 0.1
+
+model:
+  d_model: 128
+  nhead: 8
+  dim_feedforward: 512
+  num_sem_layers: 3
+  num_cipher_layers: 2
+  channel_dim: 16
+  dropout: 0.1
+  key_len: 64
+  n_key_tokens: 4
+
+channel:
+  kind: awgn             # awgn | rayleigh
+  train_snr_db: 12.0
+  csi_rho: 0.95
+  csi_dim: 32
+  csi_snr_db: 15.0
+
+keygen:
+  kind: random           # random | csi
+  csi_hidden: 128
+  recon_repeat: 3
+  bits: 64
+
+lam:
+  kind: fixed            # fixed | adaptive
+  value: 0.5
+  target_frac: 0.9
+  eta: 0.05
+  ema: 0.9
+
+train:
+  epochs: 30
+  batch_size: 64
+  lr_joint: 0.0001
+  lr_sub: 0.001
+  lr_eve: 0.001
+  grad_clip: 1.0
+  log_every: 50
+  device: auto
+  seed: 0
+  out_dir: results
+  run_name: base_awgn
+
+eval:
+  snr_db_list: [0, 3, 6, 9, 12, 15, 18]
+  rho_list: [0.5, 0.7, 0.9, 0.95, 0.99]
+  num_batches: 8
+  bleu_ngrams: 4

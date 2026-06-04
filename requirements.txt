@@ -1,0 +1,7 @@
+# Pinned to the versions verified on Python 3.13. torch 2.12 ships CPU + CUDA
+# wheels; on a CUDA box `pip install torch` picks the right build automatically.
+torch==2.12.0
+numpy==2.4.6
+PyYAML==6.0.3
+matplotlib==3.10.9
+pytest==9.0.3
