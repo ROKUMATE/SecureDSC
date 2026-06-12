@@ -66,10 +66,18 @@ class KeyGenConfig:
 
 @dataclass
 class LambdaConfig:
-    """Lambda scheduler selection (Improvement B toggle)."""
+    """Lambda scheduler selection (Improvement B toggle).
+
+    NOTE on direction: ``L_joint = L_B + |L_E - lambda|`` pulls Eve's loss
+    *toward* ``lambda``. For security you want Eve's loss HIGH, so ``lambda`` must
+    be a high target (~``ln(vocab)`` = random-guess loss). A small ``lambda``
+    trains Alice to *help* Eve and destroys secrecy. Because the right absolute
+    value is corpus-dependent (it scales with ``ln(vocab)``), tuning it by hand is
+    fiddly -- which is exactly what the adaptive scheduler removes.
+    """
 
     kind: str = "fixed"  # "fixed" | "adaptive"
-    value: float = 0.5  # fixed lambda, or initial value for adaptive
+    value: float = 6.0  # fixed lambda target (set ~0.9*ln(vocab) for your corpus)
     target_frac: float = 0.9  # adaptive: target Eve loss = target_frac * ln(vocab)
     eta: float = 0.05  # adaptive: feedback step size
     ema: float = 0.9  # adaptive: EMA factor for tracked L_E

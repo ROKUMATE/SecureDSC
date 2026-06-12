@@ -88,6 +88,16 @@ def make_lambda_scheduler(cfg, vocab_size: int) -> LambdaScheduler:
     ln_vocab = math.log(vocab_size)
     kind = cfg.kind.lower()
     if kind == "fixed":
+        if cfg.value < 0.5 * ln_vocab:
+            import warnings
+
+            warnings.warn(
+                f"fixed lambda={cfg.value:.2f} is low vs ln(vocab)={ln_vocab:.2f}. "
+                f"L_joint pulls Eve's loss toward lambda, so a low lambda trains "
+                f"Alice to HELP Eve. For secrecy set lambda ~= {0.9 * ln_vocab:.2f} "
+                f"(0.9*ln(vocab)) or use the adaptive scheduler.",
+                stacklevel=2,
+            )
         return FixedLambda(cfg.value)
     if kind == "adaptive":
         max_value = cfg.max_value if cfg.max_value is not None else ln_vocab

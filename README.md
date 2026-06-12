@@ -60,36 +60,50 @@ that training, evaluation, the CSI key sweep, plots and tables all run.)
 
 ---
 
-## 3. Reproduce the baseline (P1) and the improvements
+## 3. Get the dataset first
 
-All real runs use `configs/base_awgn.yaml` (DeepSC-sized model). Defaults to the
-built-in toy corpus so it runs anywhere; for paper-scale results point it at a
-text corpus (see §5).
+> **Important:** real Bob-high / Eve-low secrecy needs a high-entropy corpus.
+> The built-in **toy corpus is only 20 sentences** — Eve simply *memorises* all
+> messages, so you will see `BLEU(Eve) ≈ BLEU(Bob)`. Use **Europarl** for any
+> result you report.
+
+```bash
+python -m scripts.get_europarl                 # -> data/europarl-v7.en (~200 MB download)
+# or cap it:  python -m scripts.get_europarl --max-lines 200000
+```
+
+This downloads the Europarl v7 fr-en release and extracts its English side (the
+corpus DeepSC uses). The loader lower-cases and strips punctuation automatically.
+
+## 4. Reproduce the baseline (P1) and the improvements
+
+All real runs use `configs/base_europarl.yaml` (DeepSC-sized model, real corpus,
+corpus-appropriate `lambda`). GPU strongly recommended.
 
 ```bash
 # P1 — baseline: random key, fixed lambda, AWGN
-python -m scripts.run_train --config configs/base_awgn.yaml --run-name base_awgn
-python -m scripts.run_eval  --ckpt results/base_awgn/ckpt.pt
-# -> results/base_awgn/bleu_vs_snr.png   (expect BLEU(Bob) high, BLEU(Eve) low)
+python -m scripts.run_train --config configs/base_europarl.yaml --run-name base_europarl
+python -m scripts.run_eval  --ckpt results/base_europarl/ckpt.pt
+# -> results/base_europarl/bleu_vs_snr.png   (expect BLEU(Bob) high, BLEU(Eve) low)
 
 # P2 — adaptive lambda A/B (compare training stability / final gap)
-python -m scripts.run_train --config configs/base_awgn.yaml --lam fixed    --run-name lam_fixed
-python -m scripts.run_train --config configs/base_awgn.yaml --lam adaptive --run-name lam_adaptive
+python -m scripts.run_train --config configs/base_europarl.yaml --lam fixed    --run-name lam_fixed
+python -m scripts.run_train --config configs/base_europarl.yaml --lam adaptive --run-name lam_adaptive
 
 # P3 — CSI-based key generation
-python -m scripts.run_train --config configs/base_awgn.yaml --keygen csi --run-name csi_key
+python -m scripts.run_train --config configs/base_europarl.yaml --keygen csi --run-name csi_key
 python -m scripts.run_eval  --ckpt results/csi_key/ckpt.pt
 # -> results/csi_key/key_vs_correlation.png  (Alice/Bob agreement rises with rho,
 #    Eve mismatch stays high)
 
 # Rayleigh channel
-python -m scripts.run_train --config configs/base_awgn.yaml --channel rayleigh --run-name base_rayleigh
+python -m scripts.run_train --config configs/base_europarl.yaml --channel rayleigh --run-name base_rayleigh
 ```
 
 ### Full ablation grid (P4) — the headline experiment
 
 ```bash
-python -m scripts.run_ablation --config configs/base_awgn.yaml --seeds 0 1 2
+python -m scripts.run_ablation --config configs/base_europarl.yaml --seeds 0 1 2
 ```
 
 Writes to `results/ablation/`:
@@ -100,7 +114,7 @@ Writes to `results/ablation/`:
 
 ---
 
-## 4. What to look for (sanity checks from the paper)
+## 5. What to look for (sanity checks from the paper)
 
 | Signal | Expectation |
 |---|---|
@@ -110,24 +124,11 @@ Writes to `results/ablation/`:
 | Eve key mismatch (CSI) | ~0.3–0.5, roughly flat in `rho` (independent CSI) |
 | Adaptive vs fixed `lambda` | lower seed-to-seed variance, comparable/larger Bob−Eve gap |
 
----
-
-## 5. Training on a real corpus (Europarl)
-
-Download an English corpus (e.g. Europarl v7 `en`), one sentence per line, then:
-
-```yaml
-# in configs/base_awgn.yaml
-data:
-  source: europarl
-  path: data/europarl-v7.en
-  max_sentences: 50000     # subsample for speed
-  max_vocab: 10000
-```
-
-Sentences are lower-cased, whitespace-tokenised, length-filtered to
-`[min_len, max_len-2]`, and padded with `<start>/<end>/<pad>`; `<unk>` covers
-out-of-vocabulary words.
+**On `lambda` (secrecy knob):** `L_joint = L_B + |L_E − lambda|` pulls Eve's loss
+*toward* `lambda`, so set `lambda` **high** (~`0.9·ln(vocab)`) to keep Eve near
+random-guessing. A *low* `lambda` trains Alice to *help* Eve — there is a runtime
+warning if you set it too low. Because the right value scales with the vocab, the
+**adaptive** scheduler (`--lam adaptive`) is the robust choice.
 
 ---
 

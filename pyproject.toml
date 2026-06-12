@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+# Make `pytest` (entry-point) importable-from-root regardless of invocation.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

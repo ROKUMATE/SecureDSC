@@ -8,6 +8,7 @@ markers, and unknown tokens mapped to ``<unk>``.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from typing import List, Optional, Sequence, Tuple
 
@@ -131,18 +132,29 @@ def _load_raw_sentences(cfg: DataConfig) -> List[str]:
     if cfg.source == "europarl":
         if not cfg.path:
             raise ValueError(
-                "data.path must point to a line-based text file for source='europarl'"
+                "data.path must point to a line-based text file for source='europarl'. "
+                "Run `python -m scripts.get_europarl` to download/prepare one."
             )
         sentences = []
         with open(cfg.path, "r", encoding="utf-8", errors="ignore") as fh:
             for line in fh:
-                words = line.strip().split()
+                words = _clean_line(line).split()
                 if cfg.min_len <= len(words) <= cfg.max_len - 2:
-                    sentences.append(" ".join(words).lower())
+                    sentences.append(" ".join(words))
         if not sentences:
             raise ValueError(f"No sentences in {cfg.path} within length bounds")
         return sentences
     raise ValueError(f"Unknown data.source: {cfg.source}")
+
+
+_CLEAN_RE = re.compile(r"[^a-z0-9\s]")
+
+
+def _clean_line(line: str) -> str:
+    """Lower-case and strip punctuation (DeepSC-style preprocessing)."""
+    line = line.lower()
+    line = _CLEAN_RE.sub(" ", line)
+    return re.sub(r"\s+", " ", line).strip()
 
 
 def build_dataloaders(

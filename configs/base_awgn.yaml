@@ -1,7 +1,9 @@
 # Full SecureDSC baseline: DeepSC-sized model, AWGN channel, random key, fixed
-# lambda. Uses the built-in toy corpus by default so it runs anywhere; to train
-# on Europarl set data.source=europarl and data.path=<file>, and raise
-# data.max_sentences / max_vocab.
+# lambda. Uses the built-in toy corpus by default so it runs anywhere.
+# WARNING: the toy corpus has only ~20 unique sentences -- far too low-entropy to
+# demonstrate secrecy (Eve simply memorises all messages, so BLEU(Eve) ~ BLEU(Bob)).
+# For real Bob-high / Eve-low results use configs/base_europarl.yaml
+# (run `python -m scripts.get_europarl` first).
 data:
   source: toy            # toy | europarl
   path: null             # e.g. data/europarl-v7.en  (one sentence per line)
@@ -37,7 +39,8 @@ keygen:
 
 lam:
   kind: fixed            # fixed | adaptive
-  value: 0.5
+  # toy vocab ~120 -> ln(vocab) ~4.8; target ~0.9*ln(vocab) to keep Eve high.
+  value: 4.0
   target_frac: 0.9
   eta: 0.05
   ema: 0.9

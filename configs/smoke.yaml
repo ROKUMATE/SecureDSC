@@ -31,7 +31,7 @@ keygen:
 
 lam:
   kind: fixed        # fixed | adaptive
-  value: 0.5
+  value: 4.0         # ~0.9*ln(vocab) for the tiny toy vocab
   target_frac: 0.9
   eta: 0.05
 
